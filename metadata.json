@@ -1,0 +1,5 @@
+{
+  "name": "SpendWise \u2014 Personal Finance Management",
+  "description": "A React and Express personal finance app with JWT authentication, MongoDB persistence, budgets, transactions, admin tools, and financial analytics.",
+  "requestFramePermissions": []
+}
