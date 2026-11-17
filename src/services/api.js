@@ -1,4 +1,11 @@
+
 const TOKEN_KEY = 'spendwise_jwt_token';
+
+// Local development uses same-origin API.
+// Production uses the Render backend URL from Vercel environment variables.
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || ''
+).replace(/\/$/, '');
 
 export function getStoredToken() {
   try {
@@ -16,12 +23,13 @@ export function setStoredToken(token) {
       localStorage.removeItem(TOKEN_KEY);
     }
   } catch {
-    // Ignore storage quota errors
+    // Ignore storage errors
   }
 }
 
 async function apiRequest(path, options = {}) {
   const token = getStoredToken();
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -31,12 +39,13 @@ async function apiRequest(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
 
   const contentType = res.headers.get('content-type') || '';
+
   const data = contentType.includes('application/json')
     ? await res.json()
     : null;
@@ -45,12 +54,14 @@ async function apiRequest(path, options = {}) {
     const message =
       (data && typeof data.error === 'string' && data.error) ||
       `Request failed (${res.status})`;
+
     throw new Error(message);
   }
 
   return data;
 }
 
+// Authentication API
 export const authApi = {
   register: (payload) =>
     apiRequest('/api/auth/register', {
@@ -78,10 +89,16 @@ export const authApi = {
     }),
 };
 
+// Transactions API
 export const transactionsApi = {
   list: (params) => {
-    const qs = params ? new URLSearchParams(params).toString() : '';
-    return apiRequest(`/api/transactions${qs ? `?${qs}` : ''}`);
+    const qs = params
+      ? new URLSearchParams(params).toString()
+      : '';
+
+    return apiRequest(
+      `/api/transactions${qs ? `?${qs}` : ''}`
+    );
   },
 
   create: (payload) =>
@@ -103,31 +120,47 @@ export const transactionsApi = {
 
   downloadCsv: async (params) => {
     const token = getStoredToken();
-    const qs = params ? new URLSearchParams(params).toString() : '';
+
+    const qs = params
+      ? new URLSearchParams(params).toString()
+      : '';
+
     const res = await fetch(
-      `/api/transactions/export/csv${qs ? `?${qs}` : ''}`,
+      `${API_BASE_URL}/api/transactions/export/csv${qs ? `?${qs}` : ''}`,
       {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: token
+          ? { Authorization: `Bearer ${token}` }
+          : {},
       }
     );
+
     if (!res.ok) {
       throw new Error('Failed to export CSV ledger.');
     }
+
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
     link.href = url;
-    link.download = `spendwise-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `spendwise-ledger-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
     document.body.appendChild(link);
     link.click();
     link.remove();
+
     URL.revokeObjectURL(url);
   },
 };
 
+// Budgets API
 export const budgetsApi = {
   list: (month) =>
-    apiRequest(`/api/budgets?month=${encodeURIComponent(month)}`),
+    apiRequest(
+      `/api/budgets?month=${encodeURIComponent(month)}`
+    ),
 
   upsert: (payload) =>
     apiRequest('/api/budgets', {
@@ -141,8 +174,10 @@ export const budgetsApi = {
     }),
 };
 
+// Admin API
 export const adminApi = {
-  overview: () => apiRequest('/api/admin/overview'),
+  overview: () =>
+    apiRequest('/api/admin/overview'),
 
   setUserStatus: (id, status) =>
     apiRequest(`/api/admin/users/${id}/status`, {

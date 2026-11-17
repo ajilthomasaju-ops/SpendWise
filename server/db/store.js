@@ -1,4 +1,4 @@
-
+import dns from 'node:dns';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -9,6 +9,7 @@ import {
   TransactionModel,
   BudgetModel,
 } from '../models/mongooseModels.js';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const DATA_FILE = path.resolve(
   process.cwd(),
