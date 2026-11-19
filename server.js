@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
@@ -43,11 +44,12 @@ async function startServer() {
     });
   }
 
- app.listen(PORT, 'localhost', () => {
-  console.log(
-    `SpendWise server listening on http://localhost:${PORT} (${dbInfo.mode})`
-  );
-});
+  // Render requires the server to listen on 0.0.0.0
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(
+      `SpendWise server listening on port ${PORT} (${dbInfo.mode})`
+    );
+  });
 }
 
 startServer().catch((err) => {
